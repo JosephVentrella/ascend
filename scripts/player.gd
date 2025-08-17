@@ -1,6 +1,6 @@
 extends CharacterBody2D
 
-@export var speed: float = 1000.0
+@export var speed: float = 200.0
 @export var bullet_scene: PackedScene
 @export var fire_rate: float = 0.15
 var screen_size # Size of the game window.
@@ -14,13 +14,29 @@ func _physics_process(_delta):
 	var input_dir = Vector2.ZERO
 	input_dir.x = Input.get_axis("ui_left", "ui_right")
 	input_dir.y = Input.get_axis("ui_up", "ui_down")
-
+	print("Input direction: ", input_dir)
 	velocity = input_dir.normalized() * speed
 	if velocity.length() > 0:
-		$Sprite2D.play()
+		$AnimatedSprite2D.play()
 	else:
-		$Sprite2D.stop()
-
+		$AnimatedSprite2D.stop()
+	position += velocity * _delta
+	# Clamp using collision shape size
+	var collision_shape = $CollisionShape2D.shape
+	var shape_extents = Vector2.ZERO
+	if collision_shape is CapsuleShape2D:
+		shape_extents.x = collision_shape.radius
+		shape_extents.y = collision_shape.height / 2.0
+	position.x = clamp(position.x, shape_extents.x, screen_size.x - shape_extents.x)
+	position.y = clamp(position.y, shape_extents.y, screen_size.y - shape_extents.y)
+	if velocity.x != 0:
+		$AnimatedSprite2D.animation = "walk"
+		$AnimatedSprite2D.flip_v = false
+		# See the note below about the following boolean assignment.
+		$AnimatedSprite2D.flip_h = velocity.x < 0
+	elif velocity.y != 0:
+		$AnimatedSprite2D.animation = "up"
+		$AnimatedSprite2D.flip_v = velocity.y > 0
 	move_and_slide()
 	
 func _process(delta):
